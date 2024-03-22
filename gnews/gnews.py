@@ -16,7 +16,7 @@ except ImportError:
     pass
 
 from gnews.utils.constants import AVAILABLE_COUNTRIES, AVAILABLE_LANGUAGES, TOPICS, BASE_URL, USER_AGENT
-from gnews.utils.utils import connect_database, post_database, process_url
+from gnews.utils.utils import connect_database, post_database, process_url, process_url_final
 
 logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO,
                     datefmt='%m/%d/%Y %I:%M:%S %p')
@@ -218,6 +218,19 @@ class GNews:
                 'publisher': item.get("source", " ")
             }
             return item
+    
+    def _process_final(self, item):
+        url = process_url_final(item, self._exclude_websites)
+        if url:
+            title = item.get("title", "")
+            item = {
+                'title': title,
+                'description': self._clean(item.get("description", "")),
+                'published date': item.get("published", ""),
+                'url': url,
+                'publisher': item.get("source", " ")
+            }
+            return item
 
     def docstring_parameter(*sub):
         def dec(obj):
@@ -244,6 +257,19 @@ class GNews:
             key = "%20".join(key.split(" "))
             query = '/search?q={}'.format(key)
             return self._get_news(query)
+        
+    @docstring_parameter(standard_output)
+    def get_news_final(self, key):
+        """
+        The function takes in a key and returns a list of news articles
+        :param key: The query you want to search for. For example, if you want to search for news about
+        the "Yahoo", you would get results from Google News according to your key i.e "yahoo"
+        :return: A list of dictionaries with structure: {0}.
+        """
+        if key:
+            key = "%20".join(key.split(" "))
+            query = '/search?q={}'.format(key)
+            return self._get_news_final(query)
 
     @docstring_parameter(standard_output)
     def get_top_news(self):
@@ -309,6 +335,21 @@ class GNews:
 
             return [item for item in
                     map(self._process, feed_data.entries[:self._max_results]) if item]
+        except Exception as err:
+            logger.error(err.args[0])
+            return []
+    
+    def _get_news_final(self, query):
+        url = BASE_URL + query + self._ceid()
+        try:
+            if self._proxy:
+                proxy_handler = urllib.request.ProxyHandler(self._proxy)
+                feed_data = feedparser.parse(url, agent=USER_AGENT, handlers=[proxy_handler])
+            else:
+                feed_data = feedparser.parse(url, agent=USER_AGENT)
+
+            return [item for item in
+                    map(self._process_final, feed_data.entries[:self._max_results]) if item]
         except Exception as err:
             logger.error(err.args[0])
             return []
