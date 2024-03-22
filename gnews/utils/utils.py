@@ -88,3 +88,16 @@ def _get_final_url(url):
     except requests.RequestException as e:
         logging.error(f"Request failed: {e}")
         return None
+
+def process_url_final(item, exclude_websites):
+    headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.125 Safari/537.36'
+        }
+    source = item.get('source').get('href')
+    if not all([not re.match(website, source) for website in
+                [f'^http(s)?://(www.)?{website.lower()}.*' for website in exclude_websites]]):
+        return
+    url = item.get('link')
+    if re.match(GOOGLE_NEWS_REGEX, url):
+        url = requests.head(url).headers.get('location', url, headers=headers).url
+    return url

@@ -1,5 +1,7 @@
 import unittest
 from gnews import GNews
+from time import time
+from gnews.utils import utils
 
 class TestGNews(unittest.TestCase):
     def setUp(self):
@@ -53,6 +55,25 @@ class TestGNews(unittest.TestCase):
         # self.assertIsNotNone(article)
         # self.assertTrue(hasattr(article, 'title'))
         # self.assertTrue(hasattr(article, 'text'))
+
+    def test_get_final_url(self):
+        # Test that get_final_url returns a valid URL for a valid URL
+        topic = "business"
+        news_articles = self.gnews.get_news_by_topic(topic)
+        t = time()
+        self.gnews.get_news(news_articles[1]['url'])
+        t0 = time() - t
+        
+        t = time()
+        final_url = utils._get_final_url(news_articles[1]['url'])  # should this be included in time?
+        self.gnews.get_news(final_url)
+        t1 = time() - t
+        self.assertTrue(t1>t0)
+        
+        t = time()
+        self.gnews.get_news_final(news_articles[1]['url'])
+        t2 = time() - t
+        self.assertTrue(t2<t0)
 
 if __name__ == '__main__':
     unittest.main()
